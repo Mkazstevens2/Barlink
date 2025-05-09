@@ -1,14 +1,18 @@
-entrypoint = "index.js"
-modules = ["nodejs-22"]
-hidden = [".config", "package-lock.json"]
+run = "bash run.sh"
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
+entrypoint = "server/index.js"
+language = "nodejs"
 
-[nix]
-channel = "stable-24_11"
+[packager]
+ignoredPaths = [".config", "node_modules"]
 
 [deployment]
-run = ["node", "index.js"]
-deploymentTarget = "autoscale"
-ignorePorts = false
+run = ["npm", "start"]
+deploymentTarget = "auto"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[nix]
+packages = ["psmisc"]
