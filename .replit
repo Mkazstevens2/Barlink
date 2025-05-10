@@ -15,4 +15,4 @@ localPort = 3000
 externalPort = 80
 
 [nix]
-packages = ["psmisc"]
+packages = ["psmisc", "openssh"]
