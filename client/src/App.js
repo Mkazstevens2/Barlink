@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io("https://barlink-6oru.onrender.com"); // ✅ Render deployment domain
+const socket = io("https://barlink-6oru.onrender.com");
 
 const GENDER_COLORS = {
   Male: "blue",
@@ -9,7 +9,6 @@ const GENDER_COLORS = {
   Other: "darkgreen",
 };
 
-// Emoji mapping
 const EMOJI_MAP = {
   ":fire:": "🔥",
   ":heart:": "❤️",
@@ -51,7 +50,14 @@ const App = () => {
       setMessages((prev) => [...prev, data]);
     });
 
-    return () => socket.off("newMessage");
+    socket.on("newImage", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+
+    return () => {
+      socket.off("newMessage");
+      socket.off("newImage");
+    };
   }, [form.bar]);
 
   const convertEmojis = (text) => {
@@ -74,25 +80,36 @@ const App = () => {
 
   const handleSend = async () => {
     const imageUrl = await handleImageUpload();
-    if (!message && !imageUrl) return;
-
     const now = new Date().toLocaleTimeString("en-US", {
       timeZone: "America/Chicago",
       hour: "numeric",
       minute: "2-digit",
     });
 
-    const data = {
-      name: userInfo.name,
-      age: userInfo.age,
-      gender: userInfo.gender,
-      bar: userInfo.bar,
-      text: convertEmojis(message),
-      image: imageUrl || null,
-      time: now,
-    };
+    if (imageUrl) {
+      const imageData = {
+        name: userInfo.name,
+        age: userInfo.age,
+        gender: userInfo.gender,
+        bar: userInfo.bar,
+        image: imageUrl,
+        time: now,
+      };
+      socket.emit("sendImage", imageData);
+    }
 
-    socket.emit("sendMessage", data);
+    if (message) {
+      const messageData = {
+        name: userInfo.name,
+        age: userInfo.age,
+        gender: userInfo.gender,
+        bar: userInfo.bar,
+        text: convertEmojis(message),
+        time: now,
+      };
+      socket.emit("sendMessage", messageData);
+    }
+
     setMessage("");
     setImage(null);
   };
@@ -112,14 +129,12 @@ const App = () => {
 
         <input
           placeholder="Name"
-          autoComplete="off"
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
 
         <input
           placeholder="Age"
           type="number"
-          autoComplete="off"
           onChange={(e) => setForm({ ...form, age: e.target.value })}
         />
 
