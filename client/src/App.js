@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io();
+const socket = io("https://barlink-6oru.onrender.com"); // ✅ Render deployment domain
 
 const GENDER_COLORS = {
   Male: "blue",
@@ -63,7 +63,7 @@ const App = () => {
     const formData = new FormData();
     formData.append("image", image);
 
-    const res = await fetch("/upload", {
+    const res = await fetch("https://barlink-6oru.onrender.com/upload", {
       method: "POST",
       body: formData,
     });
@@ -87,7 +87,7 @@ const App = () => {
       age: userInfo.age,
       gender: userInfo.gender,
       bar: userInfo.bar,
-      text: convertEmojis(message), // ✅ Emoji conversion on send
+      text: convertEmojis(message),
       image: imageUrl || null,
       time: now,
     };
@@ -113,25 +113,17 @@ const App = () => {
         <input
           placeholder="Name"
           autoComplete="off"
-          onChange={(e) =>
-            setForm({ ...form, name: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
 
         <input
           placeholder="Age"
           type="number"
           autoComplete="off"
-          onChange={(e) =>
-            setForm({ ...form, age: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, age: e.target.value })}
         />
 
-        <select
-          onChange={(e) =>
-            setForm({ ...form, gender: e.target.value })
-          }
-        >
+        <select onChange={(e) => setForm({ ...form, gender: e.target.value })}>
           <option value="">Select Gender</option>
           <option>Male</option>
           <option>Female</option>
@@ -163,9 +155,7 @@ const App = () => {
 
         <select
           disabled={!form.neighborhood}
-          onChange={(e) =>
-            setForm({ ...form, bar: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, bar: e.target.value })}
         >
           <option value="">Select Bar</option>
           {barList.map((bar) => (
@@ -220,16 +210,14 @@ const App = () => {
                 />
               </div>
             )}
-            <div style={{ fontSize: "0.8em", color: "#888" }}>
-              {msg.time}
-            </div>
+            <div style={{ fontSize: "0.8em", color: "#888" }}>{msg.time}</div>
           </div>
         ))}
       </div>
 
       <input
         value={message}
-        placeholder="Type a message)"
+        placeholder="Type a message"
         onChange={(e) => setMessage(e.target.value)}
         style={{ width: "60%" }}
       />
