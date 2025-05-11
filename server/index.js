@@ -15,23 +15,24 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3001;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(express.static(path.join(__dirname, "../client/build")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, '../client/build')));
 
-// Multer setup for image uploads
+// Multer config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "server/uploads"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  destination: (req, file, cb) => cb(null, 'server/uploads'),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
 });
 const upload = multer({ storage });
 
-app.post("/upload", upload.single("image"), (req, res) => {
+app.post('/upload', upload.single('image'), (req, res) => {
   res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// Socket.IO
+// Socket.IO logic
 io.on("connection", (socket) => {
   console.log("✅ New client connected");
 
@@ -50,16 +51,33 @@ io.on("connection", (socket) => {
     io.to(data.bar).emit("newImage", data);
   });
 
+  socket.on("typing", (data) => {
+    socket.to(data.bar).emit("userTyping", data.name);
+  });
+
+  socket.on("stopTyping", (data) => {
+    socket.to(data.bar).emit("userStopTyping", data.name);
+  });
+
+  socket.on("createPoll", (poll) => {
+    io.to(poll.bar).emit("newPoll", poll);
+  });
+
+  socket.on("votePoll", (voteData) => {
+    io.to(voteData.bar).emit("pollVote", voteData);
+  });
+
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected");
   });
 });
 
-// Catch-all route for React
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+// React catch-all route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
 });
 
+// Start server
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });

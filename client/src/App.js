@@ -65,6 +65,9 @@ const App = () => {
   const [messages, setMessages] = useState([]);
   const [image, setImage] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [polls, setPolls] = useState([]);
+  const [currentPoll, setCurrentPoll] = useState({ question: "", options: ["", ""] });
 
   useEffect(() => {
     if (form.bar) socket.emit("joinBar", form.bar);
@@ -77,9 +80,35 @@ const App = () => {
       setMessages((prev) => [...prev, data]);
     });
 
+    socket.on("userTyping", (name) => {
+      setTypingUsers((prev) => [...new Set([...prev, name])]);
+    });
+
+    socket.on("userStopTyping", (name) => {
+      setTypingUsers((prev) => prev.filter((n) => n !== name));
+    });
+
+    socket.on("newPoll", (poll) => {
+      setPolls((prev) => [...prev, { ...poll, votes: [0, 0] }]);
+    });
+
+    socket.on("pollVote", ({ pollIndex, optionIndex }) => {
+      setPolls((prev) => {
+        const updatedPolls = [...prev];
+        if (updatedPolls[pollIndex]) {
+          updatedPolls[pollIndex].votes[optionIndex] += 1;
+        }
+        return updatedPolls;
+      });
+    });
+
     return () => {
       socket.off("newMessage");
       socket.off("newImage");
+      socket.off("userTyping");
+      socket.off("userStopTyping");
+      socket.off("newPoll");
+      socket.off("pollVote");
     };
   }, [form.bar]);
 
@@ -138,6 +167,27 @@ const App = () => {
     setMessage("");
     setImage(null);
     setIsSending(false);
+    socket.emit("stopTyping", { bar: userInfo.bar, name: userInfo.name });
+  };
+
+  const handleTyping = (e) => {
+    setMessage(e.target.value);
+    socket.emit("typing", { bar: userInfo.bar, name: userInfo.name });
+  };
+
+  const handlePollCreation = () => {
+    if (currentPoll.question && currentPoll.options.every((opt) => opt)) {
+      const poll = {
+        ...currentPoll,
+        bar: userInfo.bar,
+      };
+      socket.emit("createPoll", poll);
+      setCurrentPoll({ question: "", options: ["", ""] });
+    }
+  };
+
+  const handleVote = (pollIndex, optionIndex) => {
+    socket.emit("votePoll", { bar: userInfo.bar, pollIndex, optionIndex });
   };
 
   if (!userInfo) {
@@ -169,101 +219,6 @@ const App = () => {
           <option>Other</option>
         </select>
         <select
-          onChange={(e) =>
-            setForm({ ...form, city: e.target.value, neighborhood: "", bar: "" })
-          }
-        >
-          <option value="">Select City</option>
-          {cityList.map((city) => (
-            <option key={city}>{city}</option>
-          ))}
-        </select>
-        <select
-          disabled={!form.city}
-          onChange={(e) =>
-            setForm({ ...form, neighborhood: e.target.value, bar: "" })
-          }
-        >
-          <option value="">Select Neighborhood</option>
-          {neighborhoodList.map((n) => (
-            <option key={n}>{n}</option>
-          ))}
-        </select>
-        <select
-          disabled={!form.neighborhood}
-          onChange={(e) => setForm({ ...form, bar: e.target.value })}
-        >
-          <option value="">Select Bar</option>
-          {barList.map((bar) => (
-            <option key={bar}>{bar}</option>
-          ))}
-        </select>
+          onChange
+::contentReference[oaicite:0]{index=0}
 
-        <button
-          disabled={
-            !form.name ||
-            !form.age ||
-            !form.gender ||
-            !form.city ||
-            !form.neighborhood ||
-            !form.bar
-          }
-          onClick={() => setUserInfo(form)}
-        >
-          Join
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Live Chat at {userInfo.bar}</h2>
-      <div
-        style={{
-          maxHeight: 400,
-          overflowY: "auto",
-          border: "1px solid #ccc",
-          padding: 10,
-          marginBottom: 10,
-        }}
-      >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              color: GENDER_COLORS[msg.gender] || "black",
-              marginBottom: 10,
-            }}
-          >
-            <strong>{msg.name}:</strong> {msg.text}
-            {msg.image && (
-              <div>
-                <img
-                  src={msg.image}
-                  alt="upload"
-                  style={{ width: "150px", marginTop: 5 }}
-                  loading="lazy"
-                />
-              </div>
-            )}
-            <div style={{ fontSize: "0.8em", color: "#888" }}>{msg.time}</div>
-          </div>
-        ))}
-      </div>
-
-      <input
-        value={message}
-        placeholder="Type a message"
-        onChange={(e) => setMessage(e.target.value)}
-        style={{ width: "60%" }}
-      />
-      <input type="file" onChange={(e) => setImage(e.target.files[0])} />
-      <button onClick={handleSend} disabled={isSending}>
-        {isSending ? "Sending..." : "Send"}
-      </button>
-    </div>
-  );
-};
-
-export default App;
