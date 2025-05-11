@@ -29,6 +29,28 @@ const CITIES = {
   },
 };
 
+// 🔧 Resize image before uploading (faster send)
+const resizeImage = (file, maxWidth = 800) =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], file.name, { type: file.type }));
+        }, file.type);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
 const App = () => {
   const [form, setForm] = useState({
     name: "",
@@ -42,6 +64,7 @@ const App = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [image, setImage] = useState(null);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (form.bar) socket.emit("joinBar", form.bar);
@@ -66,8 +89,9 @@ const App = () => {
 
   const handleImageUpload = async () => {
     if (!image) return null;
+    const resized = await resizeImage(image);
     const formData = new FormData();
-    formData.append("image", image);
+    formData.append("image", resized);
 
     const res = await fetch("https://barlink-6oru.onrender.com/upload", {
       method: "POST",
@@ -79,6 +103,7 @@ const App = () => {
   };
 
   const handleSend = async () => {
+    setIsSending(true);
     const imageUrl = await handleImageUpload();
     const now = new Date().toLocaleTimeString("en-US", {
       timeZone: "America/Chicago",
@@ -112,6 +137,7 @@ const App = () => {
 
     setMessage("");
     setImage(null);
+    setIsSending(false);
   };
 
   if (!userInfo) {
@@ -131,20 +157,17 @@ const App = () => {
           placeholder="Name"
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
-
         <input
           placeholder="Age"
           type="number"
           onChange={(e) => setForm({ ...form, age: e.target.value })}
         />
-
         <select onChange={(e) => setForm({ ...form, gender: e.target.value })}>
           <option value="">Select Gender</option>
           <option>Male</option>
           <option>Female</option>
           <option>Other</option>
         </select>
-
         <select
           onChange={(e) =>
             setForm({ ...form, city: e.target.value, neighborhood: "", bar: "" })
@@ -155,7 +178,6 @@ const App = () => {
             <option key={city}>{city}</option>
           ))}
         </select>
-
         <select
           disabled={!form.city}
           onChange={(e) =>
@@ -167,7 +189,6 @@ const App = () => {
             <option key={n}>{n}</option>
           ))}
         </select>
-
         <select
           disabled={!form.neighborhood}
           onChange={(e) => setForm({ ...form, bar: e.target.value })}
@@ -222,6 +243,7 @@ const App = () => {
                   src={msg.image}
                   alt="upload"
                   style={{ width: "150px", marginTop: 5 }}
+                  loading="lazy"
                 />
               </div>
             )}
@@ -237,7 +259,9 @@ const App = () => {
         style={{ width: "60%" }}
       />
       <input type="file" onChange={(e) => setImage(e.target.files[0])} />
-      <button onClick={handleSend}>Send</button>
+      <button onClick={handleSend} disabled={isSending}>
+        {isSending ? "Sending..." : "Send"}
+      </button>
     </div>
   );
 };
