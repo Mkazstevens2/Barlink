@@ -1,18 +1,5 @@
-run = "bash run.sh"
-
-entrypoint = "server/index.js"
-language = "nodejs"
-
-[packager]
-ignoredPaths = [".config", "node_modules"]
-
-[deployment]
-run = ["npm", "start"]
-deploymentTarget = "auto"
+run = "node server/index.js"
 
 [[ports]]
-localPort = 3000
+localPort = 3001
 externalPort = 80
-
-[nix]
-packages = ["psmisc", "openssh"]

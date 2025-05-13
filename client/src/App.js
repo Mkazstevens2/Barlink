@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 
-const socket = io("https://barlink-6oru.onrender.com");
+const res = await fetch("https://0fda3213-919a-4925-a6db-474fe43a75ec-00-3qrj2colaplt4.janeway.replit.dev/upload", {
+  method: "POST",
+  body: formData,
+});
+
 
 const GENDER_COLORS = {
   Male: "blue",
@@ -18,15 +22,29 @@ const EMOJI_MAP = {
   ":100:": "💯",
 };
 
+const CITIES = {
+  Chicago: {
+    "Lincoln Park": ["The Galway Arms", "Old Grounds Social"],
+    "Wicker Park": ["The Violet Hour", "Emporium"],
+  },
+  Austin: {
+    Downtown: ["The Roosevelt Room", "Barbarella"],
+    EastSide: ["Whisler's", "Lazarus Brewing"],
+  },
+};
+
 const App = () => {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("Male");
+  const [city, setCity] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
   const [bar, setBar] = useState("");
+
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [image, setImage] = useState(null);
   const [typingUsers, setTypingUsers] = useState({});
+  const [image, setImage] = useState(null);
   const [joined, setJoined] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -50,8 +68,8 @@ const App = () => {
           const updated = { ...prev };
           delete updated[typingName];
           return updated;
-        }, 3000);
-      });
+        });
+      }, 3000);
     });
 
     socket.on("userStopTyping", (typingName) => {
@@ -104,7 +122,7 @@ const App = () => {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch("https://barlink-6oru.onrender.com/upload", {
+    const res = await fetch("https://your-backend-url.repl.co/upload", {
       method: "POST",
       body: formData,
     });
@@ -133,6 +151,9 @@ const App = () => {
     socket.emit("typing", { name, bar });
   };
 
+  const neighborhoods = city ? Object.keys(CITIES[city]) : [];
+  const bars = city && neighborhood ? CITIES[city][neighborhood] : [];
+
   if (!joined) {
     return (
       <div className="setup">
@@ -149,26 +170,65 @@ const App = () => {
           <option>Female</option>
           <option>Other</option>
         </select>
-        <input
-          placeholder="Bar Location"
+
+        <select value={city} onChange={(e) => {
+          setCity(e.target.value);
+          setNeighborhood("");
+          setBar("");
+        }}>
+          <option value="">Select City</option>
+          {Object.keys(CITIES).map((cityName) => (
+            <option key={cityName} value={cityName}>{cityName}</option>
+          ))}
+        </select>
+
+        <select
+          value={neighborhood}
+          onChange={(e) => {
+            setNeighborhood(e.target.value);
+            setBar("");
+          }}
+          disabled={!city}
+        >
+          <option value="">Select Neighborhood</option>
+          {neighborhoods.map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+
+        <select
           value={bar}
           onChange={(e) => setBar(e.target.value)}
-        />
-        <button onClick={() => setJoined(true)}>Enter Chat</button>
+          disabled={!neighborhood}
+        >
+          <option value="">Select Bar</option>
+          {bars.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={() => {
+            if (name && age && gender && city && neighborhood && bar) {
+              setJoined(true);
+            } else {
+              alert("Please fill out all fields.");
+            }
+          }}
+        >
+          Enter Chat
+        </button>
       </div>
     );
   }
 
   return (
     <div className="chat">
-      <h2>BarLink Chat</h2>
+      <h2>{bar} Chat</h2>
       <div className="messages">
         {messages.map((msg, index) => (
           <div key={index} style={{ color: GENDER_COLORS[msg.gender] || "black" }}>
-            <strong>
-              {msg.name} ({msg.age})
-            </strong>{" "}
-            [{msg.timestamp}]:
+            <strong>{msg.name} ({msg.age})</strong> [{msg.timestamp}]:
             {msg.type === "text" && <span> {msg.text}</span>}
             {msg.type === "image" && (
               <div>
