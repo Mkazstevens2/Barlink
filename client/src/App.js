@@ -1,11 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 
-const res = await fetch("https://0fda3213-919a-4925-a6db-474fe43a75ec-00-3qrj2colaplt4.janeway.replit.dev/upload", {
-  method: "POST",
-  body: formData,
-});
-
+const socket = io("https://0fda3213-919a-4925-a6db-474fe43a75ec-00-3qrj2colaplt4.janeway.replit.dev");
 
 const GENDER_COLORS = {
   Male: "blue",
@@ -40,7 +36,6 @@ const App = () => {
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [bar, setBar] = useState("");
-
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
@@ -122,7 +117,7 @@ const App = () => {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch("https://your-backend-url.repl.co/upload", {
+    const res = await fetch("https://0fda3213-919a-4925-a6db-474fe43a75ec-00-3qrj2colaplt4.janeway.replit.dev/upload", {
       method: "POST",
       body: formData,
     });
